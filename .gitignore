@@ -1,0 +1,28 @@
+# Build
+bin/
+obj/
+*.user
+*.suo
+*.cache
+.vs/
+*.rsuser
+
+# Results / generated
+PowerSchemeTest-Results.csv
+*.log
+
+# IDE
+.idea/
+*.sln.docstates
+
+# OS
+Thumbs.db
+.DS_Store
+
+# NuGet
+packages/
+*.nupkg
+project.lock.json
+
+# Keep scheme-guids.json (created by Install script, may be committed as sample)
+# scheme-guids.json

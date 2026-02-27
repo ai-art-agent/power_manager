@@ -1,0 +1,218 @@
+<Window x:Class="PowerManagerWidget.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Power Manager"
+        Height="680" Width="340"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        Topmost="True" ResizeMode="NoResize"
+        Left="100" Top="100"
+        Loaded="Window_Loaded"
+        MouseLeftButtonDown="Window_MouseLeftButtonDown">
+    <Border Background="{StaticResource PanelBackground}" CornerRadius="10" Padding="14,12,14,24"
+            BorderBrush="{StaticResource PanelBorder}" BorderThickness="1">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="20" ShadowDepth="0" Opacity="0.4" Color="Black"/>
+        </Border.Effect>
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="72"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="72"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="72"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Верхняя строка: кнопки Свернуть и Закрыть справа -->
+            <Grid Grid.Row="0" Margin="0,0,0,6">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button x:Name="BtnMinimize" Width="28" Height="24" Margin="0,0,2,0" ToolTip="Свернуть"
+                            Click="BtnMinimize_Click" Background="Transparent" BorderThickness="0" Cursor="Hand">
+                        <TextBlock Text="−" FontSize="16" FontWeight="Bold" Foreground="{StaticResource TextSecondary}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Button>
+                    <Button x:Name="BtnClose" Width="28" Height="24" ToolTip="Выход"
+                            Click="BtnClose_Click" Background="Transparent" BorderThickness="0" Cursor="Hand">
+                        <TextBlock Text="×" FontSize="18" Foreground="{StaticResource TextSecondary}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Button>
+                </StackPanel>
+            </Grid>
+
+            <!-- ЦП: частота и загрузка -->
+            <Grid Grid.Row="1" Margin="0,0,0,2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="ЦП" Foreground="{StaticResource TextPrimary}" FontSize="13" FontWeight="SemiBold" Margin="0,0,8,0"/>
+                    <TextBlock x:Name="TbCpu" Foreground="{StaticResource TextSecondary}" FontSize="12" VerticalAlignment="Center" Text="-- ГГц"/>
+                </StackPanel>
+                <TextBlock x:Name="TbFreqScale" Grid.Column="1" Foreground="{StaticResource TextSecondary}" FontSize="10" HorizontalAlignment="Right" VerticalAlignment="Center" Text=""/>
+            </Grid>
+            <Canvas x:Name="CanvasFreq" Grid.Row="2" Height="64" Margin="0,0,0,6"/>
+
+            <!-- Нагрузка % -->
+            <Grid Grid.Row="3" Margin="0,0,0,2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="Нагрузка" Foreground="{StaticResource TextPrimary}" FontSize="12" Margin="0,0,8,0"/>
+                    <TextBlock x:Name="TbLoad" Foreground="{StaticResource TextSecondary}" FontSize="12" Text="--%"/>
+                </StackPanel>
+                <TextBlock x:Name="TbLoadScale" Grid.Column="1" Foreground="{StaticResource TextSecondary}" FontSize="10" HorizontalAlignment="Right" VerticalAlignment="Center" Text="0–100%"/>
+            </Grid>
+            <Canvas x:Name="CanvasLoad" Grid.Row="4" Height="64" Margin="0,0,0,6"/>
+
+            <!-- Температура -->
+            <Grid Grid.Row="5" Margin="0,0,0,2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="Темп." Foreground="{StaticResource TextPrimary}" FontSize="12" Margin="0,0,8,0"/>
+                    <TextBlock x:Name="TbTemp" Foreground="{StaticResource TextSecondary}" FontSize="12" Text="-- °C"/>
+                </StackPanel>
+                <TextBlock x:Name="TbTempScale" Grid.Column="1" Foreground="{StaticResource TextSecondary}" FontSize="10" HorizontalAlignment="Right" VerticalAlignment="Center" Text=""/>
+            </Grid>
+            <Canvas x:Name="CanvasTemp" Grid.Row="6" Height="64" Margin="0,0,0,8"/>
+
+            <!-- Разделитель -->
+            <Border Grid.Row="7" Height="1" Background="{StaticResource PanelBorder}" Margin="0,0,0,4"/>
+
+            <!-- Рекомендуемый режим (моргающий индикатор) -->
+            <Grid Grid.Row="8" Margin="0,4,0,4" HorizontalAlignment="Center">
+                <Ellipse x:Name="RecommendedIndicator" Width="14" Height="14" Fill="#606FCF97" Opacity="0.9"/>
+            </Grid>
+
+            <!-- Полоска схем + Авто -->
+            <StackPanel Grid.Row="9" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,6">
+                <RadioButton x:Name="RbMin" ToolTip="Минимум (экономия)" Style="{StaticResource SchemeRadioStyle}" Checked="Scheme_Checked" Tag="Min">
+                    <Path Data="M6,4 L6,20 L18,20 L18,4 L14,4 L14,2 L10,2 L10,4 Z M8,6 L16,6 L16,18 L8,18 Z" Fill="{StaticResource TextSecondary}" Width="12" Height="14" Stretch="Uniform"/>
+                </RadioButton>
+                <RadioButton x:Name="RbBalanced" ToolTip="Сбалансированная" Style="{StaticResource SchemeRadioStyle}" Checked="Scheme_Checked" Tag="Balanced" Margin="8,0,0,0">
+                    <!-- Круг с горизонтальной чертой (баланс) -->
+                    <Path Data="M12,4 A8,8 0 0 1 20,12 A8,8 0 0 1 12,4 M4,12 L20,12" Fill="{x:Null}" Stroke="{StaticResource TextSecondary}" StrokeThickness="1.5" Width="14" Height="14" Stretch="Uniform"/>
+                </RadioButton>
+                <RadioButton x:Name="RbMax" ToolTip="Максимум (производительность)" Style="{StaticResource SchemeRadioStyle}" Checked="Scheme_Checked" Tag="Max" Margin="8,0,0,0">
+                    <Path Data="M13,1 L6,11 L11,11 L9,23 L18,10 L12,10 Z" Fill="{StaticResource TextSecondary}" Width="12" Height="14" Stretch="Uniform"/>
+                </RadioButton>
+                <CheckBox x:Name="ChkAutoMode" Content="Авто" Foreground="{StaticResource TextPrimary}" FontSize="11" VerticalAlignment="Center" Margin="12,0,0,0" ToolTip="Автовыбор режима по нагрузке и батарее" Checked="ChkAutoMode_Changed" Unchecked="ChkAutoMode_Changed"/>
+            </StackPanel>
+
+            <!-- Батарея (всегда видимая строка с подписью) -->
+            <Grid Grid.Row="10" MinHeight="24" Margin="0,0,0,6">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="Батарея:" Foreground="{StaticResource TextPrimary}" FontSize="11" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                <TextBlock x:Name="TbBatteryTime" Grid.Column="1" Foreground="{StaticResource TextSecondary}" FontSize="11" VerticalAlignment="Center" Text="—"/>
+            </Grid>
+
+            <!-- Яркость -->
+            <Grid Grid.Row="11" Margin="0,0,0,6">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="Яркость" Foreground="{StaticResource TextPrimary}" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <Slider x:Name="SliderBrightness" Grid.Column="1" Minimum="0" Maximum="100" Value="50" VerticalAlignment="Center" ValueChanged="SliderBrightness_ValueChanged"/>
+                <TextBlock x:Name="TbBrightness" Grid.Column="2" Foreground="{StaticResource TextSecondary}" FontSize="11" VerticalAlignment="Center" Margin="8,0,0,0" Text="50%"/>
+            </Grid>
+
+            <!-- Защита глаз — встроенный ночной режим Windows -->
+            <Grid Grid.Row="12" Margin="0,0,0,6">
+                <Button x:Name="BtnEyeProtection" Content="Защита глаз (параметры)" ToolTip="Открыть параметры ночного режима / защиты глаз Windows"
+                        Foreground="{StaticResource TextPrimary}" FontSize="11" Padding="8,4" HorizontalAlignment="Stretch"
+                        Click="BtnEyeProtection_Click" Background="{StaticResource SchemeButtonBg}" BorderBrush="{StaticResource PanelBorder}" BorderThickness="1"/>
+            </Grid>
+
+            <!-- Звук -->
+            <Grid Grid.Row="13" Margin="0,0,0,8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="Звук" Foreground="{StaticResource TextPrimary}" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <Slider x:Name="SliderVolume" Grid.Column="1" Minimum="0" Maximum="1" Value="0.5" VerticalAlignment="Center" ValueChanged="SliderVolume_ValueChanged"/>
+                <TextBlock x:Name="TbVolume" Grid.Column="2" Foreground="{StaticResource TextSecondary}" FontSize="11" VerticalAlignment="Center" Margin="8,0,0,0" Text="50%"/>
+            </Grid>
+
+            <!-- Энергосбережение -->
+            <Border Grid.Row="14" Padding="0,6,0,4" Margin="0,0,0,0">
+                <CheckBox x:Name="ChkEnergySaver" Content="Энергосбережение" Foreground="{StaticResource TextPrimary}" FontSize="11" Checked="ChkEnergySaver_Changed" Unchecked="ChkEnergySaver_Changed"/>
+            </Border>
+
+            <!-- Разделитель между галочками -->
+            <Border Grid.Row="15" Height="1" Background="{StaticResource PanelBorder}" Margin="0,2,0,2"/>
+
+            <!-- Поверх всех окон -->
+            <Border Grid.Row="16" Padding="0,10,0,20" MinHeight="36">
+                <CheckBox x:Name="ChkTopmost" Content="Поверх всех окон" Foreground="{StaticResource TextPrimary}" FontSize="11" IsChecked="True" Checked="ChkTopmost_Changed" Unchecked="ChkTopmost_Changed"/>
+            </Border>
+
+            <!-- Скорость обновления графиков -->
+            <Grid Grid.Row="17" Margin="0,10,0,4" MinHeight="26">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="Графики:" Foreground="{StaticResource TextPrimary}" FontSize="10" VerticalAlignment="Center" Margin="0,0,8,0" ToolTip="Как часто обновлять графики ЦП, нагрузки и температуры"/>
+                <ComboBox x:Name="CbUpdateInterval" Grid.Column="1" FontSize="10" MinWidth="80" VerticalAlignment="Center" SelectionChanged="CbUpdateInterval_SelectionChanged"/>
+            </Grid>
+
+            <!-- Скорость проверки авто-режима (переключение на рекомендуемый режим) -->
+            <Grid Grid.Row="18" Margin="0,4,0,12" MinHeight="26">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="Проверка авто:" Foreground="{StaticResource TextPrimary}" FontSize="10" VerticalAlignment="Center" Margin="0,0,8,0" ToolTip="Как часто проверять и переключать на рекомендуемый режим при включённом Авто"/>
+                <ComboBox x:Name="CbAutoCheckInterval" Grid.Column="1" FontSize="10" MinWidth="80" VerticalAlignment="Center" SelectionChanged="CbAutoCheckInterval_SelectionChanged"/>
+            </Grid>
+
+            <!-- Оверлей при выходе: какой режим оставить -->
+            <Border x:Name="ExitConfirmOverlay" Grid.Row="0" Grid.RowSpan="19" Visibility="Collapsed"
+                    Background="#F0121212" CornerRadius="8" Padding="16" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="12" ShadowDepth="0" Opacity="0.5" Color="Black"/>
+                </Border.Effect>
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <TextBlock x:Name="TbExitQuestion" Text="Какой режим оставить после выхода?" Foreground="{StaticResource TextPrimary}" FontSize="12" TextWrapping="Wrap" TextAlignment="Center" Margin="0,0,0,12"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <Button x:Name="BtnExitMin" Content="Минимум" Width="90" Margin="0,0,6,0" Padding="6,4" FontSize="11"
+                                Click="BtnExitWithScheme_Click" Tag="Min" Background="{StaticResource SchemeButtonBg}" Foreground="{StaticResource TextPrimary}" BorderBrush="{StaticResource PanelBorder}" BorderThickness="1"/>
+                        <Button x:Name="BtnExitBalanced" Content="Сбаланс." Width="90" Margin="0,0,6,0" Padding="6,4" FontSize="11"
+                                Click="BtnExitWithScheme_Click" Tag="Balanced" Background="{StaticResource SchemeButtonBg}" Foreground="{StaticResource TextPrimary}" BorderBrush="{StaticResource PanelBorder}" BorderThickness="1"/>
+                        <Button x:Name="BtnExitMax" Content="Максимум" Width="90" Margin="0,0,6,0" Padding="6,4" FontSize="11"
+                                Click="BtnExitWithScheme_Click" Tag="Max" Background="{StaticResource SchemeButtonBg}" Foreground="{StaticResource TextPrimary}" BorderBrush="{StaticResource PanelBorder}" BorderThickness="1"/>
+                    </StackPanel>
+                    <Button Content="Отмена" Margin="0,12,0,0" Padding="10,4" FontSize="11" HorizontalAlignment="Center"
+                            Click="BtnExitCancel_Click" Background="{StaticResource SchemeButtonBg}" Foreground="{StaticResource TextPrimary}" BorderBrush="{StaticResource PanelBorder}" BorderThickness="1"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Border>
+</Window>
