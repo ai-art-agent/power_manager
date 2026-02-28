@@ -37,7 +37,14 @@ public sealed class CpuSensorReader
 
     public void Close()
     {
-        _computer.Close();
+        try
+        {
+            _computer.Close();
+        }
+        catch (InvalidOperationException)
+        {
+            // LibreHardwareMonitor иногда выбрасывает "Collection was modified" при закрытии
+        }
     }
 
     private void CollectCpuSensors(IReadOnlyList<IHardware> hardwareList)

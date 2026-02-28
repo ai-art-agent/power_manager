@@ -27,6 +27,8 @@ public partial class MainWindow : Window
     private long _lastAutoCheckMs;
     private int _tickCount;
     private bool _uiUpdatePending;
+    private bool _isClosing;
+    private bool _updatingStartupCheck;
 
     public MainWindow()
     {
@@ -300,6 +302,11 @@ public partial class MainWindow : Window
 
     private void Window_Loaded(object sender, RoutedEventArgs e)
     {
+        // Прижать окно к правой границе экрана (по рабочей области, с учётом панели задач)
+        var workArea = SystemParameters.WorkArea;
+        Left = workArea.Right - Width;
+        Top = workArea.Top + (workArea.Height - Height) / 2;
+
         Activate();
         Topmost = true;
 
@@ -332,6 +339,10 @@ public partial class MainWindow : Window
             TbVolume.Text = $"{(int)(v.Value * 100)}%";
             _updatingVolumeSlider = false;
         }
+
+        _updatingStartupCheck = true;
+        try { ChkRunAtStartup.IsChecked = StartupHelper.IsRunAtStartup(); }
+        finally { _updatingStartupCheck = false; }
 
         Activate();
     }
@@ -427,6 +438,12 @@ public partial class MainWindow : Window
         Topmost = ChkTopmost.IsChecked == true;
     }
 
+    private void ChkRunAtStartup_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_updatingStartupCheck) return;
+        StartupHelper.SetRunAtStartup(ChkRunAtStartup.IsChecked == true);
+    }
+
     private void CbUpdateInterval_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
         if (CbUpdateInterval?.SelectedIndex is not int idx || idx < 0) return;
@@ -489,24 +506,36 @@ public partial class MainWindow : Window
     private void UpdateRecommendedIndicator(float? load, float? maxTemp,
         (int? Percent, bool OnBattery, bool Charging, int? MinutesRemaining, int? MinutesToFull) battery)
     {
+        if (_isClosing) return;
         _recommendedScheme = GetRecommendedScheme(load, maxTemp, battery);
-        if (RecommendedIndicator == null) return;
-        RecommendedIndicator.Fill = _recommendedScheme switch
-        {
-            "Min" => (Brush)FindResource("RecommendedMin"),
-            "Max" => (Brush)FindResource("RecommendedMax"),
-            _ => (Brush)FindResource("RecommendedBalanced")
-        };
+
+        // Три кружка: моргает только рекомендуемый (зелёный над Min, жёлтый над Balanced, красный над Max)
+        if (RecommendedIndicatorMin == null || RecommendedIndicatorBalanced == null || RecommendedIndicatorMax == null) return;
+        const double dim = 0.35;
+        const double bright = 0.95;
+        RecommendedIndicatorMin.Opacity = _recommendedScheme == "Min" ? bright : dim;
+        RecommendedIndicatorBalanced.Opacity = _recommendedScheme == "Balanced" ? bright : dim;
+        RecommendedIndicatorMax.Opacity = _recommendedScheme == "Max" ? bright : dim;
+
         if (_blinkTimer == null)
         {
             _blinkTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
-            _blinkTimer.Tick += (_, _) =>
-            {
-                if (RecommendedIndicator != null)
-                    RecommendedIndicator.Opacity = RecommendedIndicator.Opacity > 0.5 ? 0.35 : 0.95;
-            };
+            _blinkTimer.Tick += BlinkTimer_Tick;
             _blinkTimer.Start();
         }
+    }
+
+    private void BlinkTimer_Tick(object? sender, EventArgs e)
+    {
+        if (_isClosing) return;
+        Ellipse? active = _recommendedScheme switch
+        {
+            "Min" => RecommendedIndicatorMin,
+            "Max" => RecommendedIndicatorMax,
+            _ => RecommendedIndicatorBalanced
+        };
+        if (active != null)
+            active.Opacity = active.Opacity > 0.5 ? 0.35 : 0.95;
     }
 
     private void ApplyRecommendedScheme(string scheme)
@@ -551,9 +580,12 @@ public partial class MainWindow : Window
 
     protected override void OnClosed(EventArgs e)
     {
-        _sensorTimer?.Dispose();
+        _isClosing = true;
         _blinkTimer?.Stop();
-        _sensorReader.Close();
+        _blinkTimer = null;
+        _sensorTimer?.Dispose();
+        _sensorTimer = null;
+        try { _sensorReader.Close(); } catch { /* LibreHardwareMonitor может выбросить при закрытии */ }
         EyeProtectionHelper.Restore();
         base.OnClosed(e);
     }
